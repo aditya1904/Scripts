@@ -1,0 +1,27 @@
+#!/bin/bash
+PROXY=10.1.101.150
+PORT=3128
+USERNAME=111403023
+echo -n Password for 111403023@10.1.101.150:3128:
+read -s PASSWORD
+echo 
+
+
+gsettings set org.gnome.system.proxy mode manual
+gsettings set org.gnome.system.proxy.http host "$PROXY"
+gsettings set org.gnome.system.proxy.http port "$PORT"
+gsettings set org.gnome.system.proxy.https host "$PROXY"
+gsettings set org.gnome.system.proxy.https port "$PORT"
+gsettings set org.gnome.system.proxy use-same-proxy true
+
+sudo sed -i.bak '/http[s]::proxy/Id' /etc/apt/apt.conf
+sudo tee -a /etc/apt/apt.conf <<EOF
+Acquire::http::proxy "http://$USERNAME:$PASSWORD@$PROXY:$PORT/";
+Acquire::https::proxy "http://$USERNAME:$PASSWORD@$PROXY:$PORT/";
+EOF
+
+sudo sed -i.bak '/http[s]_proxy/Id' /etc/environment
+sudo tee -a /etc/environment <<EOF
+http_proxy="http://$PROXY:$PORT/"
+https_proxy="http://$PROXY:$PORT/"
+EOF
