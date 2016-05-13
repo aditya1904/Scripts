@@ -3,7 +3,7 @@ import imapclient
 import pyzmail
 import datetime
 mymail = imapclient.IMAPClient('imap.gmail.com', ssl=True)
-mymail.login('anonbridge1@gmail.com','anonbridge3')
+mymail.login('anonbridge1@gmail.com','##your_password##')
 mymail.select_folder('INBOX', readonly=False)
 uids = mymail.search(['ALL'])
 rawmessage = mymail.fetch(uids, ['BODY[]'])
