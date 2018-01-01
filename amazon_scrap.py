@@ -1,33 +1,62 @@
 #!/usr/bin/env python
-##This one needs a lot of improvment 
-## A cleaner version update soon.
+
 import urllib2
 import lxml.html
+import argparse
 import sys
 
-url = 'http://www.amazon.in/Sony-MDR-ZX110A-Stereo-Headphone-White/dp/B00KGZZ824/ref=sr_1_1?ie=UTF8&qid=1470725118&sr=8-1&keywords=sony+mdr+zx110a'
+def check_arg(args=None):
+	parser = argparse.ArgumentParser(description='Script to get Price and Rating of a product on amazon.in . Run the script with \'-p <ASINid>\' to get the dealprice, saleprice and rating of a product. To know more about ASIN https://www.amazon.com/gp/help/customer/display.html?nodeId=200202190')
+	parser.add_argument('-p', '--product', help='ASIN id of product', default='B00KGZZ824')
+	results = parser.parse_args(args)
+	return (results.product)
 
-try:
-	html = urllib2.urlopen(url).read()
-except urllib2.URLError as e:
-	print 'Error: ', e.reason
-	html = None
-	sys.exit(1)
 
-tree = lxml.html.fromstring(html)
-price_class =  tree.cssselect('td.a-span12 > span#priceblock_saleprice')[0]
-name_class = tree.cssselect('h1#title > span#productTitle')[0]
-name = name_class.text_content()
-try:
-    price_class_deal =  tree.cssselect('td.a-span12 > span#priceblock_dealprice')[0]
-    deal = price_class.text_content()
-    print "dealprice" + deal
-except:
-    pass
+def get_data(html):
+	tree = lxml.html.fromstring(html)
+	XPATH_TITLE = '//*[@id="productTitle"]/text()'
+	XPATH_PRICE = '//*[@id="priceblock_ourprice"]/text()'
+	XPATH_DEALPRICE = '//*[@id="priceblock_dealprice"]/text()'
+	XPATH_RATING = './/i[@data-hook="average-star-rating"]//text()'
+	price = tree.xpath(XPATH_PRICE)
+	dealprice = tree.xpath(XPATH_DEALPRICE)
+	title = tree.xpath(XPATH_TITLE)
+	rating  = tree.xpath(XPATH_RATING)
+	try:
+		p_price = price[0].strip()
+	except IndexError:
+		p_price = "Price not available"
 
-price = price_class.text_content()
-name = name.replace('\n','')
+	try:
+		p_rating = rating[0].strip()
+	except IndexError:
+		p_rating = "Ratings not available"
 
-print name
-print "Saleprice" + price
+	product = {"title":title[0].strip(), "price": p_price, "rating":p_rating}
+	if dealprice:
+		product["dealprice"] = dealprice[0].strip()
+	else:
+		product["dealprice"] = "No deal"
+	return product
 
+def main():
+	asin = check_arg(sys.argv[1:])
+	url = 'http://www.amazon.in/dp/'
+	headers = {'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/42.0.2311.90 Safari/537.36'}
+	url = url + asin
+	request = urllib2.Request(url, headers=headers)
+	print "Downloading page: ", url
+	try:
+		html = urllib2.urlopen(request).read()
+	except urllib2.URLError as e:
+		print 'Error: ', e.reason
+		html = None
+		sys.exit(1)
+	product = get_data(html)
+	print "Title:", product['title']
+	print "Price:", product['price']
+	print "DealPrice:", product['dealprice']
+	print "Rating:", product['rating']
+
+if __name__ == '__main__':
+	main()
